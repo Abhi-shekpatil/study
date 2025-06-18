@@ -1,0 +1,11 @@
+
+https://www.coursera.org/search?query=agentic%20ai&language=English&partners=DeepLearning.AI&productTypeDescription=Guided%20Projects&productTypeDescription=Projects&sortBy=NEW
+
+openAI api key - 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
+
+langsmith api key - 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
+
+huggingface key - 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
+
+
+
