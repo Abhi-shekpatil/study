@@ -1,0 +1,15 @@
+# Core dependencies
+streamlit
+pytesseract
+pdf2image
+Pillow
+langchain
+langgraph
+faiss-cpu
+sentence-transformers
+langchain-community
+ollama
+tqdm
+
+# Optional for fuzzy search
+fuzzywuzzy
