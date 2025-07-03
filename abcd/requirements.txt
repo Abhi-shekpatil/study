@@ -1,6 +1,6 @@
 # Core dependencies
 streamlit
-pytesseract
+# pytesseract
 pdf2image
 Pillow
 langchain
@@ -10,6 +10,8 @@ sentence-transformers
 langchain-community
 ollama
 tqdm
+paddle-ocr
+paddlepaddle
 
 # Optional for fuzzy search
 fuzzywuzzy

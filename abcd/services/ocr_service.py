@@ -4,8 +4,7 @@ import re
 import unicodedata
 import base64
 import pickle
-import pytesseract
-from PIL import Image
+from paddleocr import PaddleOCR
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -16,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+ocr_engine = PaddleOCR(use_angle_cls=True, lang='en')
+
 
 # ----------------------------
 # TEXT UTILS
@@ -33,12 +34,18 @@ def encode_image_to_base64(image_path: str) -> str:
 # ----------------------------
 # OCR ENGINE
 # ----------------------------
-def extract_text_tesseract(image_paths: list[str]) -> dict:
+
+def extract_text_paddle(image_paths: list[str]) -> dict:
     results = {}
     for img_path in image_paths:
-        text = pytesseract.image_to_string(Image.open(img_path), lang="eng")
-        results[os.path.basename(img_path)] = clean_text(text)
+        ocr_result = ocr_engine.ocr(img_path, cls=True)
+        extracted_text = []
+        for line in ocr_result[0]:
+            text = line[1][0]
+            extracted_text.append(text)
+        results[os.path.basename(img_path)] = clean_text(" ".join(extracted_text))
     return results
+
 
 def extract_text_llava(image_paths: list[str], max_workers: int = 8) -> dict:
     """
@@ -66,8 +73,9 @@ def extract_text_llava(image_paths: list[str], max_workers: int = 8) -> dict:
                 raise RuntimeError(f"Failed HTTP: {response.status_code}")
 
         except Exception as e:
-            print(f"[Fallback:Tesseract] {img_path} -> {e}")
-            fallback_text = pytesseract.image_to_string(Image.open(img_path), lang="eng")
+            print(f"[Fallback:PaddleOCR] {img_path} -> {e}")
+            ocr_result = ocr_engine.ocr(img_path, cls=True)
+            fallback_text = " ".join([line[1][0] for line in ocr_result[0]])
             return os.path.basename(img_path), clean_text(fallback_text)
 
     results = {}
@@ -85,8 +93,8 @@ def extract_text_llava(image_paths: list[str], max_workers: int = 8) -> dict:
 # ----------------------------
 def load_or_create_cache(image_paths: list, json_path: str, method: str = "llava") -> dict:
     """
-    Loads OCR results from JSON if available; otherwise runs OCR (LLaVA or Tesseract) and saves.
-    Includes fallback to Tesseract if LLaVA fails.
+    Loads OCR results from JSON if available; otherwise runs OCR (LLaVA or PaddleOCR) and saves.
+    Includes fallback to PaddleOCR if LLaVA fails.
     """
     if os.path.exists(json_path):
         with open(json_path, "r") as f:
@@ -102,26 +110,28 @@ def load_or_create_cache(image_paths: list, json_path: str, method: str = "llava
             # Check if LLaVA returned meaningful text
             empty_pages = [k for k, v in results.items() if not v.strip() or "[Error" in v]
             if len(empty_pages) == len(image_paths):
-                raise RuntimeError("LLaVA OCR failed on all pages. Falling back to Tesseract.")
+                raise RuntimeError("LLaVA OCR failed on all pages. Falling back to PaddleOCR.")
 
             text_data = results
+
+        elif method == "paddle":
+            print("[OCR] Using PaddleOCR")
+            text_data = extract_text_paddle(image_paths)
+
         else:
-            raise ValueError("Skip to Tesseract")
+            raise ValueError(f"Unsupported OCR method: {method}")
 
     except Exception as e:
-        print(f"[Fallback] OCR failed with LLaVA. Reason: {e}")
-        print("[OCR] Falling back to Tesseract...")
+        print(f"[Fallback] OCR failed with method '{method}'. Reason: {e}")
+        print("[OCR] Falling back to PaddleOCR...")
 
-        for img_path in image_paths:
-            text = pytesseract.image_to_string(Image.open(img_path), lang="eng")
-            text_data[os.path.basename(img_path)] = text
+        text_data = extract_text_paddle(image_paths)
 
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
     with open(json_path, "w") as f:
         json.dump(text_data, f, indent=2)
 
     return text_data
-
 
 # ----------------------------
 # VECTORSTORE

@@ -26,12 +26,16 @@ if uploaded_pdf is not None:
         f.write(uploaded_pdf.read())
     st.success(f"Uploaded and saved: {pdf_filename}")
 
+ocr_method = st.selectbox("Choose OCR method", ["llava", "paddle"])
+
+
 # Run button
 if st.button("🔍 Generate Answer"):
     if not uploaded_pdf or not query:
         st.warning("Please upload a PDF and enter a query.")
     else:
         with st.spinner("Processing your query..."):
-            response = run_pipeline(pdf_filename, query)
+            # response = run_pipeline(pdf_filename, query)
+            response = run_pipeline(pdf_filename, query, ocr_method=ocr_method)
             st.success("Query processed successfully.")
             st.json(response)
