@@ -71,6 +71,7 @@ def extract_text_llava(image_paths: list[str], max_workers: int = 8) -> dict:
                 return os.path.basename(img_path), text
             else:
                 raise RuntimeError(f"Failed HTTP: {response.status_code}")
+            
 
         except Exception as e:
             print(f"[Fallback:PaddleOCR] {img_path} -> {e}")
