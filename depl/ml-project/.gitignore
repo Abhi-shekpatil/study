@@ -1,0 +1,17 @@
+# Python virtual environments
+DEV/
+.venv/
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files
+.env
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/

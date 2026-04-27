@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  yolov8-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODEL_PATH=models/model.pt
